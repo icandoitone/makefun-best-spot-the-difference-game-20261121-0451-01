@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%8F%AE%3C/text%3E%3C/svg%3E">
+<title>Lantern Lane — Spot the Difference</title>
+<style>
+  :root {
+    --ink: #2b2135;
+    --paper: #fff7e6;
+    --gold: #ffc53d;
+    --coral: #ff6b5e;
+    --teal: #2ec4b6;
+    --plum: #7b5ea7;
+    --panel: #241a3e;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: #17102b; color: var(--paper);
+    font-family: Georgia, 'Times New Roman', serif; }
+  body { display: flex; flex-direction: column; align-items: center; }
+  header { width: 100%; max-width: 1240px; padding: 12px 20px 4px;
+    display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; }
+  h1 { margin: 0; font-size: 28px; letter-spacing: 1px; color: var(--gold); }
+  h1 small { font-size: 15px; color: var(--paper); font-weight: normal; }
+  #scene-name { font-style: italic; opacity: 0.9; }
+  .stats { margin-left: auto; display: flex; gap: 18px; font-size: 17px; }
+  .stats b { color: var(--gold); font-size: 20px; }
+  #timer.low b { color: var(--coral); }
+  #time-track { width: 100%; max-width: 1240px; height: 6px; background: #3a2c52;
+    border-radius: 3px; margin: 6px 20px 0; overflow: hidden; }
+  #time-bar { height: 100%; width: 100%; background: var(--teal); transition: width 0.3s linear; }
+  main { width: 100%; max-width: 1240px; padding: 10px 20px; position: relative; }
+  .panels { display: flex; gap: 16px; justify-content: center; }
+  .panel-wrap { position: relative; }
+  .panel-wrap h2 { margin: 0 0 6px; font-size: 15px; font-weight: normal;
+    display: flex; justify-content: space-between; }
+  .panel-wrap h2 span:last-child { color: var(--gold); }
+  canvas { display: block; width: 560px; height: 420px; border: 3px solid var(--plum);
+    border-radius: 10px; background: var(--panel); cursor: crosshair; }
+  .hud { width: 100%; max-width: 1240px; padding: 0 20px 8px; }
+  #counter-row { display: flex; align-items: center; gap: 12px; }
+  #counter { font-size: 19px; }
+  #counter-track { flex: 1; height: 12px; background: #3a2c52; border-radius: 6px; overflow: hidden; }
+  #counter-progress { height: 100%; width: 0%; background: var(--gold); transition: width 0.3s; }
+  #message { min-height: 26px; margin: 6px 0 0; font-size: 17px; color: var(--gold); text-align: center; }
+  .controls { display: flex; gap: 10px; justify-content: center; padding: 4px 0 14px; }
+  button { font-family: inherit; font-size: 16px; padding: 9px 18px; border: none;
+    border-radius: 8px; background: var(--gold); color: var(--ink); cursor: pointer; }
+  button:hover:not(:disabled) { filter: brightness(1.1); }
+  button:disabled { opacity: 0.45; cursor: default; }
+  button.ghost { background: transparent; color: var(--paper); border: 2px solid var(--plum); }
+  .overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: rgba(23, 16, 43, 0.82); border-radius: 10px; z-index: 5; }
+  .overlay.hidden { display: none; }
+  .card { background: var(--paper); color: var(--ink); border-radius: 14px; padding: 26px 32px;
+    max-width: 520px; text-align: center; box-shadow: 0 12px 40px rgba(0,0,0,0.5); }
+  .card h2 { margin: 0 0 10px; font-size: 26px; color: var(--plum); }
+  .card p { margin: 8px 0; font-size: 16px; line-height: 1.45; }
+  .card .keys { font-size: 14px; opacity: 0.8; }
+  .card button { margin-top: 12px; font-size: 18px; padding: 11px 26px; }
+  #status { position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip-path: inset(50%); white-space: nowrap; }
+  footer { font-size: 13px; opacity: 0.65; padding-bottom: 10px; text-align: center; }
+  @media (max-width: 1180px) {
+    .panels { flex-direction: column; align-items: center; }
+    canvas { width: min(560px, 94vw); height: auto; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>🏮 Lantern Lane <small>· Spot the Difference</small></h1>
+  <span id="scene-name">Scene 1 of 3 · Lantern Market</span>
+  <div class="stats">
+    <span id="timer">⏱ <b>2:30</b></span>
+    <span>Score <b id="score">0</b></span>
+    <span>Best <b id="best">0</b></span>
+  </div>
+</header>
+<div id="time-track"><div id="time-bar"></div></div>
+<main>
+  <div class="panels">
+    <div class="panel-wrap">
+      <h2><span>◀ Left picture</span><span>Original</span></h2>
+      <canvas id="panel-left" data-panel="0" aria-label="Left picture: the original scene"></canvas>
+    </div>
+    <div class="panel-wrap">
+      <h2><span>Right picture ▶</span><span>Changed</span></h2>
+      <canvas id="panel-right" data-panel="1" aria-label="Right picture: the changed scene"></canvas>
+    </div>
+  </div>
+  <div class="overlay hidden" id="title-overlay">
+    <div class="card">
+      <h2>🏮 Lantern Lane</h2>
+      <p>Two pictures hang side by side in the lantern light — but seven
+      little things are different between them. Find them all before the
+      lanterns burn down!</p>
+      <p>Click a difference on either picture, or steer with the arrow keys
+      and press <b>Space</b>. A wrong click costs 5 seconds. <b>H</b> spends
+      a hint, <b>R</b> restarts, <b>M</b> mutes.</p>
+      <p class="keys">Three scenes · 7 differences each · 2:30 per scene</p>
+      <button id="start-button" type="button">Start the hunt</button>
+    </div>
+  </div>
+  <div class="overlay hidden" id="scene-done-overlay">
+    <div class="card">
+      <h2>✨ Scene complete!</h2>
+      <p id="scene-done-text"></p>
+      <button id="next-button" type="button">Next scene →</button>
+    </div>
+  </div>
+  <div class="overlay hidden" id="win-overlay">
+    <div class="card">
+      <h2>🎉 You found them all!</h2>
+      <p id="win-text"></p>
+      <button id="play-again-button" type="button">Play again</button>
+    </div>
+  </div>
+  <div class="overlay hidden" id="over-overlay">
+    <div class="card">
+      <h2>🕯️ Out of time</h2>
+      <p id="over-text"></p>
+      <button id="restart-button" type="button">Try again</button>
+    </div>
+  </div>
+</main>
+<div class="hud">
+  <div id="counter-row">
+    <span id="counter">0 / 7 found · 7 left</span>
+    <div id="counter-track"><div id="counter-progress"></div></div>
+    <span id="hints-left">3 hints</span>
+  </div>
+  <p id="message" role="status"></p>
+</div>
+<div class="controls">
+  <button id="hint-button" type="button">💡 Hint (H)</button>
+  <button id="mute-button" type="button" class="ghost">🔊 Sound on</button>
+</div>
+<p id="status" role="status" aria-live="polite"></p>
+<footer>An original game — every picture, name and sound made for Lantern Lane. No images or sounds were borrowed.</footer>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
